@@ -2,16 +2,21 @@
 pragma solidity ^0.8.0;
 
 import "hardhat/console.sol";
-import "./Token.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+
 
 contract Exchange {
+    using SafeERC20 for IERC20;
+
     address public feeAccount;
     uint256 public feePercent;
     mapping(address => mapping(address => uint256)) public tokens;
     mapping(uint256 => _Order) public orders;
+    mapping(address => mapping(address => uint256)) public lockedTokens;
     uint256 public orderCount;
     mapping(uint256 => bool) public orderCancelled;
     mapping(uint256 => bool) public orderFilled;
+    
 
     event Deposit(
         address token,
@@ -76,7 +81,7 @@ contract Exchange {
 
     function depositToken(address _token, uint256 _amount) public {
         // Transfer tokens to exchange
-        require(Token(_token).transferFrom(msg.sender, address(this), _amount));
+        require(IERC20(_token).transferFrom(msg.sender, address(this), _amount));
 
         // Update user balance
         tokens[_token][msg.sender] = tokens[_token][msg.sender] + _amount;
@@ -86,11 +91,11 @@ contract Exchange {
     }
 
     function withdrawToken(address _token, uint256 _amount) public {
-        // Ensure user has enough tokens to withdraw
-        require(tokens[_token][msg.sender] >= _amount);
+        // Ensure user has enough tokens to withdraw 
+        require(tokens[_token][msg.sender] >= _amount + lockedTokens[_token][msg.sender]);
 
         // Transfer tokens to user
-        Token(_token).transfer(msg.sender, _amount);
+        IERC20(_token).transfer(msg.sender, _amount);
 
         // Update user balance
         tokens[_token][msg.sender] = tokens[_token][msg.sender] - _amount;
@@ -119,7 +124,7 @@ contract Exchange {
     ) public {
         require(_amountGet > 0 && _amountGive > 0 , "_amountGet or _amountGive < 0 ");
         // Prevent orders if tokens aren't on exchange
-        require(balanceOf(_tokenGive, msg.sender) >= _amountGive);
+        require(balanceOf(_tokenGive, msg.sender) >= _amountGive + lockedTokens[_tokenGive][msg.sender]);
 
 
         // Instantiate a new order
@@ -133,6 +138,8 @@ contract Exchange {
             _amountGive,
             block.timestamp
         );
+
+        lockedTokens[_tokenGive][msg.sender] += _amountGive;
 
         // Emit event
         emit Order(
@@ -158,6 +165,8 @@ contract Exchange {
 
         // Cancel the order
         orderCancelled[_id] = true;
+
+        lockedTokens[_order.tokenGive][_order.user] -= _order.amountGive;
 
         // Emit event
         emit Cancel(
@@ -198,6 +207,8 @@ contract Exchange {
 
         // Mark order as filled
         orderFilled[_order.id] = true;
+
+        lockedTokens[_order.tokenGive][_order.user] -= _order.amountGive;
     }
 
     function _trade(
