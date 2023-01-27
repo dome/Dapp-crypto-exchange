@@ -3,10 +3,12 @@ pragma solidity ^0.8.0;
 
 import "hardhat/console.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
 
 contract Exchange {
     using SafeERC20 for IERC20;
+    using SafeMath for uint256;
 
     address public feeAccount;
     uint256 public feePercent;
@@ -81,7 +83,7 @@ contract Exchange {
 
     function depositToken(address _token, uint256 _amount) public {
         // Transfer tokens to exchange
-        require(IERC20(_token).transferFrom(msg.sender, address(this), _amount));
+        IERC20(_token).safeTransferFrom(msg.sender, address(this), _amount);
 
         // Update user balance
         tokens[_token][msg.sender] = tokens[_token][msg.sender] + _amount;
@@ -95,7 +97,7 @@ contract Exchange {
         require(tokens[_token][msg.sender] >= _amount + lockedTokens[_token][msg.sender]);
 
         // Transfer tokens to user
-        IERC20(_token).transfer(msg.sender, _amount);
+        IERC20(_token).safeTransfer(msg.sender, _amount);
 
         // Update user balance
         tokens[_token][msg.sender] = tokens[_token][msg.sender] - _amount;
@@ -140,6 +142,7 @@ contract Exchange {
         );
 
         lockedTokens[_tokenGive][msg.sender] += _amountGive;
+        
 
         // Emit event
         emit Order(
@@ -183,8 +186,14 @@ contract Exchange {
 
     // ------------------------
     // EXECUTING ORDERS
-
     function fillOrder(uint256 _id) public {
+        // Fetch order
+        _Order memory _order = orders[_id];
+        fillOrder(_id, _order.amountGet);
+    }
+
+
+    function fillOrder(uint256 _id, uint256 _amountGet) public {
         // 1. Must be valid orderId
         require(_id > 0 && _id <= orderCount, "Order does not exist");
         // 2. Order can't be filled
@@ -195,20 +204,34 @@ contract Exchange {
         // Fetch order
         _Order storage _order = orders[_id];
 
+        uint256 _amountGive;
+        if (_amountGet < _order.amountGet) {
+            uint256 _ratio = _amountGet.mul(1e18).div(_order.amountGet);
+            _amountGive = _order.amountGive.mul(_ratio).div(1e18);
+        } else {
+            _amountGet = _order.amountGet;
+            _amountGive = _order.amountGive;
+        }
+
         // Execute the trade
         _trade(
             _order.id,
             _order.user,
             _order.tokenGet,
-            _order.amountGet,
+            _amountGet,
             _order.tokenGive,
-            _order.amountGive
+            _amountGive
         );
 
-        // Mark order as filled
-        orderFilled[_order.id] = true;
+        _order.amountGet -= _amountGet;
+        _order.amountGive -= _amountGive;
 
-        lockedTokens[_order.tokenGive][_order.user] -= _order.amountGive;
+        // Mark order as filled
+        if (_order.amountGet == 0) {
+            orderFilled[_order.id] = true;
+        }
+
+        lockedTokens[_order.tokenGive][_order.user] -= _amountGive;
     }
 
     function _trade(
