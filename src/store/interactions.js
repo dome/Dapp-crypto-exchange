@@ -82,15 +82,19 @@ export const subscribeToEvents = (exchange, dispatch) => {
 
 export const loadBalances = async (exchange, tokens, account, dispatch) => {
   let balance = ethers.utils.formatUnits(await tokens[0].balanceOf(account), 18)
+  balance = Math.round(balance * 1e4) / 1e4;
   dispatch({ type: 'TOKEN_1_BALANCE_LOADED', balance })
 
   balance = ethers.utils.formatUnits(await exchange.balanceOf(tokens[0].address, account), 18)
+  balance = Math.round(balance * 1e4) / 1e4;
   dispatch({ type: 'EXCHANGE_TOKEN_1_BALANCE_LOADED', balance })
 
   balance = ethers.utils.formatUnits(await tokens[1].balanceOf(account), 18)
+  balance = Math.round(balance * 1e4) / 1e4;
   dispatch({ type: 'TOKEN_2_BALANCE_LOADED', balance })
 
   balance = ethers.utils.formatUnits(await exchange.balanceOf(tokens[1].address, account), 18)
+  balance = Math.round(balance * 1e4) / 1e4;
   dispatch({ type: 'EXCHANGE_TOKEN_2_BALANCE_LOADED', balance })
 
 }
@@ -155,9 +159,9 @@ export const transferTokens =  async (provider, exchange, transferType, token, a
 
 export const makeBuyOrder = async (provider, exchange, tokens, order, dispatch) => {
   const tokenGet = tokens[0].address
-  const amountGet = ethers.utils.parseUnits(order.amount, 18)
+  const amountGet = ethers.utils.parseUnits(order.amount, 18) 
   const tokenGive = tokens[1].address
-  const amountGive = ethers.utils.parseUnits((order.amount * order.price).toString(), 18)
+  const amountGive =  ethers.utils.parseUnits((order.amount * order.price).toString(), 18)
 
   dispatch({ type: 'NEW_ORDER_REQUEST' })
 
@@ -172,9 +176,9 @@ export const makeBuyOrder = async (provider, exchange, tokens, order, dispatch) 
 
 export const makeSellOrder = async (provider, exchange, tokens, order, dispatch) => {
   const tokenGet = tokens[1].address
-  const amountGet = ethers.utils.parseUnits((order.amount * order.price).toString(), 18)
+  const amountGet =  ethers.utils.parseUnits((order.amount * order.price).toString(), 18) 
   const tokenGive = tokens[0].address
-  const amountGive = ethers.utils.parseUnits(order.amount, 18)
+  const amountGive =  ethers.utils.parseUnits(order.amount, 18)
 
   dispatch({ type: 'NEW_ORDER_REQUEST' })
 

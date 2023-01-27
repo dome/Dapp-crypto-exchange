@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from 'react-redux';
 
 import dapp from '../assets/dapp.svg';
 import eth from '../assets/eth.svg';
+// import { ethers } from 'ethers'
 
 import {
   loadBalances,
@@ -79,7 +80,7 @@ const Balance = () => {
       loadBalances(exchange, tokens, account, dispatch)
     }
   }, [dispatch, exchange, tokens, account, transferInProgress])
-
+  // console.log(tokenBalances[0])
   return (
     <div className='component exchange__transfers'>
       <div className='component__header flex-between'>

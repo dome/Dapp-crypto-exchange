@@ -33,7 +33,7 @@ const OrderBook = () => {
           <p className="flex-center">No Sell Orders</p>
         ) : (
             <table className='exchange__orderbook--sell'>
-            <caption>Selling</caption>
+            <caption>Buying</caption>
             <thead>
               <tr>
                 <th>{symbols && symbols[0]}<img src={sort} alt="Sort" /></th>
@@ -48,6 +48,7 @@ const OrderBook = () => {
               {orderBook && orderBook.sellOrders.map((order, index) => {
                 return(
                 <tr key={index} onClick={() => fillOrderHandler(order)}>
+                  <td>{order.token0Amount}</td>
                   <td style={{ color: `${order.orderTypeClass}` }}>{order.tokenPrice}</td>
                   <td>{order.token1Amount}</td>
                 </tr>
@@ -64,7 +65,7 @@ const OrderBook = () => {
           <p className='flex-center'>No Buy Orders</p>
         ) : (
           <table className='exchange__orderbook--buy'>
-            <caption>Buying</caption>
+            <caption>Selling</caption>
             <thead>
               <tr>
                 <th>{symbols && symbols[0]}<img src={sort} alt="Sort" /></th>
@@ -80,8 +81,8 @@ const OrderBook = () => {
                 return (
                   <tr key={index} onClick={() => fillOrderHandler(order)}>
                   <td>{order.token0Amount}</td>
-                    <td style={{ color: `${order.orderTypeClass}` }}>{order.tokenPrice}</td>
-                    <td>{order.token1Amount}</td>
+                  <td>{order.token1Amount}</td>
+                  <td style={{ color: `${order.orderTypeClass}` }}>{order.tokenPrice}</td>
                   </tr>
                 )
               })}
